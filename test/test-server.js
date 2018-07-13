@@ -150,3 +150,96 @@ describe("Shopping List", function() {
     );
   });
 });
+
+describe("Recipes", function() {
+
+  // before running any tests, start the server
+  before(function() {
+    return runServer();
+  });
+
+  // after running the tests, close the server
+  after(function() {
+    return closeServer();
+  });
+
+  // test that it is performing correctly on GET
+  it("should list recipes on GET", function() {
+    return chai
+      .request(app)
+      .get("/recipes")
+      .then(function(res) {
+        expect(res).to.have.status(200);
+        expect(res).to.be.json;
+        expect(res.body).to.be.a("array");
+        expect(res.body.length).to.be.at.least(1);
+        const expectedKeys = ["name", "id", "ingredients"];
+        res.body.forEach(function(item) {
+          expect(item).to.be.a("object");
+          expect(item).to.include.keys(expectedKeys);
+        });
+      });
+  });
+
+  //test that it is performing correctly on POST
+  it("should add new recipe on POST", function() {
+    const newRecipe = { name: "Chicken Wrap", ingredients: ["tortilla", "chicken", "lettuce", "cheese", "honey mustard"] };
+    return chai
+      .request(app)
+      .post("/recipes")
+      .send(newRecipe)
+      .then(function(res) {
+        expect(res).to.have.status(201);
+        expect(res).to.be.json;
+        expect(res.body).to.be.a("object");
+        expect(res.body).to.include.keys("id", "name", "ingredients");
+        expect(res.body.id).to.not.equal(null);
+        expect(res.body).to.deep.equal(
+          Object.assign(newRecipe, {id: res.body.id })
+        );
+      }); 
+  });
+
+  // test that it is performing correctly on PUT
+  it("should update recipe on PUT", function() {
+    const updateData = {
+      name: "recipe name",
+      ingredients: [
+        "ingredient 1",
+        "ingredient 2",
+        "ingredient 3"
+      ]
+    };
+    return(
+      chai
+        .request(app)
+        .get("/recipes")
+        .then(function(res) {
+          // set the ID that we are updating to the ID of the first recipe
+          updateData.id = res.body[0].id;
+          return chai
+            .request(app)
+            .put(`/recipes/${updateData.id}`)
+            .send(updateData);
+        })
+        .then(function(res) {
+          expect(res).to.have.status(204);
+        })
+    );
+  });
+
+  // test that it is performing correctly on DELETE
+  it("should delete recipe on DELETE", function() {
+    return (
+      chai
+        .request(app)
+        .get("/recipes")
+        .then(function(res) {
+          return chai.request(app).delete(`/recipes/${res.body[0].id}`);
+        })
+        .then(function(res) {
+          expect(res).to.have.status(204);
+        })
+      );
+  });
+});
